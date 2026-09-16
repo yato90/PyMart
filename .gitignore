@@ -1,0 +1,12 @@
+# Виртуальные окружения
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python-кэш (__pycache__ и байт-код)
+__pycache__/
+*.py[cod]
+*$py.class
