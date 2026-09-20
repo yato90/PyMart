@@ -8,7 +8,9 @@ from app.services.product_service import ProductService
 
 router = APIRouter(prefix="/products", tags=["products"])
 
-def get_product_service(session: AsyncSession = Depends(get_db)) -> ProductService:
+def get_product_service(
+    session: AsyncSession = Depends(get_db)
+) -> ProductService:
     return ProductService(session)
 
 
