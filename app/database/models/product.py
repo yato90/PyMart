@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.models.base import Base
@@ -13,6 +13,11 @@ class Product(Base):
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
+    )
+
+    category_id: Mapped[int] = mapped_column(
+        ForeignKey("categories.id"),
+        nullable=False
     )
 
     name: Mapped[str] = mapped_column(
