@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.repositories.category_repository import CategoryRepository
 from app.schemas.category import (
@@ -42,11 +43,20 @@ class CategoryService:
         self,
         category_data: CreateCategoryRequest,
     ) -> CategoryResponse:
-        category = await self.repository.create(
-            name=category_data.name,
-        )
+        try:
+            category = await self.repository.create(
+                name=category_data.name,
+            )
 
-        await self.repository.session.commit()
+            await self.repository.session.commit()
+
+        except IntegrityError:
+            await self.repository.session.rollback()
+
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category with this name already exists",
+            )
 
         return CategoryResponse(
             id=category.id,

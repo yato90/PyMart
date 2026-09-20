@@ -27,10 +27,12 @@ class ProductRepository:
             self,
             name: str,
             price,
+            category_id: int
     ) -> Product:
         product = Product(
             name=name,
-            price=price
+            price=price,
+            category_id=category_id
         )
 
         self.session.add(product)
