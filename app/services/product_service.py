@@ -42,6 +42,30 @@ class ProductService:
             price= product.price,
             category_id= product.category_id
         )
+
+    async def get_products_by_category(
+            self,
+            category_id: int,
+    ) -> list[ProductResponse]:
+        category = await self.category_repository.get_by_id(category_id)
+
+        if category is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found",
+            )
+
+        products = await self.repository.get_by_category_id(category_id)
+
+        return [
+            ProductResponse(
+                id=product.id,
+                name=product.name,
+                price=product.price,
+                category_id=product.category_id
+            )
+            for product in products
+        ]
     
     async def create_product(
         self, 

@@ -8,6 +8,9 @@ from app.schemas.category import (
 )
 from app.services.category_service import CategoryService
 
+from app.services.product_service import ProductService
+from app.schemas.product import ProductResponse
+
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
@@ -17,6 +20,10 @@ def get_category_service(
 ) -> CategoryService:
     return CategoryService(session)
 
+def get_product_service(
+    session: AsyncSession = Depends(get_db),
+) -> ProductService:
+    return ProductService(session)
 
 @router.get("", response_model=list[CategoryResponse])
 async def get_categories(
@@ -39,3 +46,13 @@ async def create_category(
     service: CategoryService = Depends(get_category_service),
 ):
     return await service.create_category(category)
+
+@router.get(
+    "/{category_id}/products", 
+    response_model=list[ProductResponse],
+)
+async def get_category_products(
+    category_id: int,
+    service: ProductService = Depends(get_product_service)
+):
+    return await service.get_products_by_category(category_id)

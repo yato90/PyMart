@@ -23,6 +23,18 @@ class ProductRepository:
 
         return list(result.scalars().all())
 
+    async def get_by_category_id(
+                self,
+                category_id: int,
+        ) -> list[Product]:
+            result = await self.session.execute(
+                select(Product)
+                .where(Product.category_id == category_id)
+                .order_by(Product.created_at.desc())
+            )
+    
+            return list(result.scalars().all())
+
     async def create(
             self,
             name: str,
