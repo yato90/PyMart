@@ -11,3 +11,7 @@ class ProductResponse(BaseModel):
     name: str
     price: Decimal
     category_id: int
+
+class ProductListResponse(BaseModel):
+    items: list[ProductResponse]
+    next_cursor: str | None

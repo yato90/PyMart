@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.dependencies import get_db
@@ -9,7 +9,7 @@ from app.schemas.category import (
 from app.services.category_service import CategoryService
 
 from app.services.product_service import ProductService
-from app.schemas.product import ProductResponse
+from app.schemas.product import ProductResponse, ProductListResponse
 
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -49,10 +49,20 @@ async def create_category(
 
 @router.get(
     "/{category_id}/products", 
-    response_model=list[ProductResponse],
+    response_model=ProductListResponse,
 )
 async def get_category_products(
     category_id: int,
+    limit: int = Query(
+        default=20,
+        ge=1,
+        le=100
+    ),
+    cursor: str | None = None,
     service: ProductService = Depends(get_product_service)
 ):
-    return await service.get_products_by_category(category_id)
+    return await service.get_products_by_category(
+        category_id=category_id,
+        limit=limit,
+        cursor=cursor,
+    )

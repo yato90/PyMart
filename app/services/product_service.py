@@ -5,7 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.product_repository import ProductRepository
-from app.schemas.product import CreateProductRequest, ProductResponse
+from app.core.cursor import decode_cursor, encode_cursor
+from app.schemas.product import (
+    CreateProductRequest, 
+    ProductResponse,
+    ProductListResponse
+)
 
 
 class ProductService:
@@ -46,7 +51,9 @@ class ProductService:
     async def get_products_by_category(
             self,
             category_id: int,
-    ) -> list[ProductResponse]:
+            limit: int,
+            cursor: str | None,
+    ) -> ProductListResponse:
         category = await self.category_repository.get_by_id(category_id)
 
         if category is None:
@@ -55,9 +62,25 @@ class ProductService:
                 detail="Category not found",
             )
 
-        products = await self.repository.get_by_category_id(category_id)
+        cursor_created_at = None
+        cursor_id = None
 
-        return [
+        if cursor is not None:
+            cursor_created_at, cursor_id = decode_cursor(cursor)
+
+        products = await self.repository.get_by_category_id(
+            category_id=category_id,
+            limit=limit + 1,
+            cursor_created_at=cursor_created_at,
+            cursor_id=cursor_id,
+        )
+
+        has_next = len(products) > limit
+
+        if has_next:
+            products = products[:limit]
+
+        items = [
             ProductResponse(
                 id=product.id,
                 name=product.name,
@@ -66,6 +89,21 @@ class ProductService:
             )
             for product in products
         ]
+
+        next_cursor = None
+
+        if has_next:
+            last_product = products[-1]
+
+            next_cursor = encode_cursor(
+                created_at=last_product.created_at,
+                product_id=last_product.id,
+            )
+
+        return ProductListResponse(
+            items=items,
+            next_cursor=next_cursor,
+        )
     
     async def create_product(
         self, 

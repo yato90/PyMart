@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from datetime import datetime
+
+from sqlalchemy import select, and_, or_, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.product import Product
@@ -26,13 +28,43 @@ class ProductRepository:
     async def get_by_category_id(
                 self,
                 category_id: int,
+                limit: int,
+                cursor_created_at: datetime | None = None,
+                cursor_id: int | None = None,
         ) -> list[Product]:
-            result = await self.session.execute(
+            query = (
                 select(Product)
                 .where(Product.category_id == category_id)
-                .order_by(Product.created_at.desc())
+                .order_by(
+                    Product.created_at.desc(),
+                    Product.id.desc()
+                )
+                .limit(limit)
             )
-    
+
+            if cursor_created_at is not None and cursor_id is not None:
+                query = query.where(
+                    tuple_(
+                        Product.created_at,
+                        Product.id,
+                    )
+                    < tuple_(
+                        cursor_created_at,
+                        cursor_id,
+                    )
+                )
+                # query = query.where(
+                #     or_(
+                #         Product.created_at < cursor_created_at,
+                #         and_(
+                #             Product.created_at == cursor_created_at,
+                #             Product.id < cursor_id,
+                #         ),
+                #     )
+                # )
+
+            result = await self.session.execute(query)
+
             return list(result.scalars().all())
 
     async def create(
