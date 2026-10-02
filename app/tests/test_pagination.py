@@ -257,3 +257,64 @@ async def test_delete_product_not_found(client):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Product not found"
+
+@pytest.mark.asyncio
+async def test_delete_empty_category(client):
+    response = await client.post(
+        "/categories",
+        json={"name": "Empty Category"},
+    )
+
+    assert response.status_code == 200
+
+    category_id = response.json()["id"]
+
+    response = await client.delete(
+        f"/categories/{category_id}",
+    )
+
+    assert response.status_code == 204
+
+    response = await client.get(
+        f"/categories/{category_id}",
+    )
+
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_delete_category_with_products(client):
+    response = await client.post(
+        "/categories",
+        json={"name": "Category With Product"},
+    )
+
+    assert response.status_code == 200
+
+    category_id = response.json()["id"]
+
+    response = await client.post(
+        "/products",
+        json={
+            "name": "Existing Product",
+            "price": "10.00",
+            "category_id": category_id,
+        },
+    )
+
+    assert response.status_code == 200
+
+    response = await client.delete(
+        f"/categories/{category_id}",
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Category contains products"
+
+@pytest.mark.asyncio
+async def test_delete_category_not_found(client):
+    response = await client.delete(
+        "/categories/999999999",
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Category not found"

@@ -62,3 +62,22 @@ class CategoryService:
             id=category.id,
             name=category.name,
         )
+
+    async def delete_category(self, category_id: int) -> None:
+        category = await self.repository.get_by_id(category_id)
+
+        if category is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found",
+            )
+
+        if await self.repository.has_products(category_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category contains products",
+            )
+
+        await self.repository.delete(category)
+
+        await self.repository.session.commit()

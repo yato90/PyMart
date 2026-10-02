@@ -47,6 +47,13 @@ async def create_category(
 ):
     return await service.create_category(category)
 
+@router.delete("/{category_id}", status_code=204)
+async def delete_category(
+    category_id: int,
+    service: CategoryService = Depends(get_category_service),
+):
+    await service.delete_category(category_id)
+
 @router.get(
     "/{category_id}/products", 
     response_model=ProductListResponse,

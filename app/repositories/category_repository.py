@@ -1,7 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import select, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.category import Category
+from app.database.models.product import Product
 
 class CategoryRepository:
 
@@ -31,3 +32,17 @@ class CategoryRepository:
         await self.session.refresh(category)
 
         return category
+
+    async def has_products(self, category_id: int) -> bool:
+        result = await self.session.execute(
+            select(
+                exists().where(
+                    Product.category_id == category_id
+                )
+            )
+        )
+
+        return bool(result.scalar())
+
+    async def delete(self, category: Category) -> None:
+        await self.session.delete(category)
