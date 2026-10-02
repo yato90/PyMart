@@ -19,10 +19,29 @@ class ProductService:
         self.repository = ProductRepository(session)
         self.category_repository = CategoryRepository(session)
 
-    async def get_products(self) -> list[ProductResponse]:
-        products = await self.repository.get_all()
+    async def get_products(
+            self,
+            limit: int,
+            cursor: str | None,
+    ) -> ProductListResponse:
+        cursor_created_at = None
+        cursor_id = None
 
-        return [
+        if cursor is not None:
+            cursor_created_at, cursor_id = decode_cursor(cursor)
+
+        products = await self.repository.get_all(
+            limit=limit + 1,
+            cursor_created_at=cursor_created_at,
+            cursor_id=cursor_id,
+        )
+
+        has_next = len(products) > limit
+
+        if has_next:
+            products = products[:limit]
+
+        items = [
             ProductResponse(
                 id=product.id,
                 name=product.name,
@@ -31,6 +50,21 @@ class ProductService:
             )
             for product in products
         ]
+
+        next_cursor = None
+
+        if has_next:
+            last_product = products[-1]
+
+            next_cursor = encode_cursor(
+                created_at=last_product.created_at,
+                product_id=last_product.id,
+            )
+
+        return ProductListResponse(
+            items=items,
+            next_cursor=next_cursor,
+        )
 
     async def get_product(self, product_id: int) -> ProductResponse | None:
         product = await self.repository.get_by_id(product_id)

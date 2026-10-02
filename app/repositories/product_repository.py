@@ -18,10 +18,34 @@ class ProductRepository:
 
         return result.scalar_one_or_none()
 
-    async def get_all(self) -> list[Product]:
-        result = await self.session.execute(
+    async def get_all(
+                self,
+                limit: int,
+                cursor_created_at: datetime | None = None,
+                cursor_id: int | None = None,
+        ) -> list[Product]:
+        query = (
             select(Product)
+            .order_by(
+                Product.created_at.desc(),
+                Product.id.desc(),
+            )
+            .limit(limit)
         )
+
+        if cursor_created_at is not None and cursor_id is not None:
+            query = query.where(
+                tuple_(
+                    Product.created_at,
+                    Product.id,
+                )
+                < tuple_(
+                    cursor_created_at,
+                    cursor_id,
+                )
+            )
+
+        result = await self.session.execute(query)
 
         return list(result.scalars().all())
 
