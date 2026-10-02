@@ -168,4 +168,15 @@ class ProductService:
             price= product.price,
             category_id=product.category_id
         )
-    
+
+    async def delete_product(self, product_id: int) -> None:
+        product = await self.repository.get_by_id(product_id)
+
+        if product is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Product not found",
+            )
+
+        await self.repository.delete(product)
+        await self.repository.session.commit()

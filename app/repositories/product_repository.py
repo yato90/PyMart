@@ -109,3 +109,6 @@ class ProductRepository:
         await self.session.refresh(product)
 
         return product
+
+    async def delete(self, product: Product) -> None:
+        await self.session.delete(product)

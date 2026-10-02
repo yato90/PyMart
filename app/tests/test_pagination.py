@@ -208,3 +208,52 @@ async def test_products_pagination(client):
     }
 
     assert first_ids.isdisjoint(second_ids)
+
+@pytest.mark.asyncio
+async def test_delete_product(client):
+    # Создаём категорию
+    response = await client.post(
+        "/categories",
+        json={"name": "Delete Product"},
+    )
+
+    assert response.status_code == 200
+
+    category_id = response.json()["id"]
+
+    # Создаём продукт
+    response = await client.post(
+        "/products",
+        json={
+            "name": "Product To Delete",
+            "price": "10.00",
+            "category_id": category_id,
+        },
+    )
+
+    assert response.status_code == 200
+
+    product_id = response.json()["id"]
+
+    # Удаляем продукт
+    response = await client.delete(
+        f"/products/{product_id}",
+    )
+
+    assert response.status_code == 204
+
+    # Проверяем, что продукта больше нет
+    response = await client.get(
+        f"/products/{product_id}",
+    )
+
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_delete_product_not_found(client):
+    response = await client.delete(
+        "/products/999999999",
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Product not found"

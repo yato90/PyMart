@@ -38,3 +38,10 @@ async def create_product(
     service: ProductService = Depends(get_product_service)
 ):
     return await service.create_product(product)
+
+@router.delete("/{product_id}", status_code=204)
+async def delete_product(
+    product_id: int,
+    service: ProductService = Depends(get_product_service),
+):
+    await service.delete_product(product_id)
