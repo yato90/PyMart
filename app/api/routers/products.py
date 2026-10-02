@@ -2,9 +2,14 @@ from fastapi import APIRouter, Depends, Query
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from typing import Annotated
+
 from app.database.dependencies import get_db
 from app.schemas.product import CreateProductRequest, ProductResponse, ProductListResponse
 from app.services.product_service import ProductService
+
+from app.database.models.user import User
+from app.auth.dependencies import require_admin
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -35,6 +40,10 @@ async def get_product(
 @router.post("", response_model= ProductResponse)
 async def create_product(
     product: CreateProductRequest,
+    current_user: Annotated[
+        User,
+        Depends(require_admin),
+    ],
     service: ProductService = Depends(get_product_service)
 ):
     return await service.create_product(product)
@@ -42,6 +51,10 @@ async def create_product(
 @router.delete("/{product_id}", status_code=204)
 async def delete_product(
     product_id: int,
+    current_user: Annotated[
+        User,
+        Depends(require_admin),
+    ],
     service: ProductService = Depends(get_product_service),
 ):
     await service.delete_product(product_id)

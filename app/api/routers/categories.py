@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from typing import Annotated
+
 from app.database.dependencies import get_db
 from app.schemas.category import (
     CategoryResponse,
@@ -10,6 +12,9 @@ from app.services.category_service import CategoryService
 
 from app.services.product_service import ProductService
 from app.schemas.product import ProductResponse, ProductListResponse
+
+from app.auth.dependencies import require_admin
+from app.database.models.user import User
 
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -43,6 +48,10 @@ async def get_category(
 @router.post("", response_model=CategoryResponse,)
 async def create_category(
     category: CreateCategoryRequest,
+    current_user: Annotated[
+        User,
+        Depends(require_admin),
+    ],
     service: CategoryService = Depends(get_category_service),
 ):
     return await service.create_category(category)
@@ -50,6 +59,10 @@ async def create_category(
 @router.delete("/{category_id}", status_code=204)
 async def delete_category(
     category_id: int,
+    current_user: Annotated[
+        User,
+        Depends(require_admin),
+    ],
     service: CategoryService = Depends(get_category_service),
 ):
     await service.delete_category(category_id)
