@@ -1,6 +1,7 @@
 from decimal import Decimal
 from fastapi import HTTPException, status
 import json
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +14,7 @@ from app.schemas.product import (
     ProductListResponse
 )
 from app.cache.redis import redis_client
-from app.kafka.producer import publish_product_event
+from app.database.models.outbox_event import OutboxEvent
 
 class ProductService:
 
@@ -179,12 +180,20 @@ class ProductService:
             category_id=product_data.category_id
         )
 
-        await self.repository.session.commit()
+        event = {
+            "event_id": str(uuid.uuid4()),
+            "event": "product.created",
+            "product_id": product.id,
+        }
 
-        await publish_product_event(
+        outbox_event = OutboxEvent(
             event_type="product.created",
-            product_id=product.id,
+            payload=json.dumps(event),
         )
+
+        self.repository.session.add(outbox_event)
+
+        await self.repository.session.commit()
         
         return ProductResponse(
             id= product.id,

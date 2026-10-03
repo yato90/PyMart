@@ -1,5 +1,4 @@
 import json
-import uuid
 
 from aiokafka import AIOKafkaProducer
 
@@ -28,18 +27,9 @@ async def stop_producer() -> None:
         producer = None
 
 
-async def publish_product_event(
-    event_type: str,
-    product_id: int,
-) -> None:
+async def publish_event(event: dict) -> None:
     if producer is None:
         raise RuntimeError("Kafka producer is not started")
-
-    event = {
-        "event_id": str(uuid.uuid4()),
-        "event": event_type,
-        "product_id": product_id,
-    }
 
     await producer.send_and_wait(
         "product-events",
