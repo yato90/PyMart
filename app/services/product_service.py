@@ -1,5 +1,6 @@
 from decimal import Decimal
 from fastapi import HTTPException, status
+import json
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +12,7 @@ from app.schemas.product import (
     ProductResponse,
     ProductListResponse
 )
-
+from app.cache.redis import redis_client
 
 class ProductService:
 
@@ -67,6 +68,15 @@ class ProductService:
         )
 
     async def get_product(self, product_id: int) -> ProductResponse | None:
+        cache_key = f"product:{product_id}"
+
+        cached_product = await redis_client.get(cache_key)
+
+        if cached_product is not None:
+            data = json.loads(cached_product)
+
+            return ProductResponse(**data)
+
         product = await self.repository.get_by_id(product_id)
 
         if product is None:
@@ -74,13 +84,21 @@ class ProductService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Product not found",
             )
-        
-        return ProductResponse(
-            id= product.id,
-            name= product.name,
-            price= product.price,
+
+        response = ProductResponse(
+            id=product.id,
+            name=product.name,
+            price=product.price,
             category_id= product.category_id
         )
+
+        await redis_client.set(
+            cache_key,
+            json.dumps(response.model_dump(mode="json")),
+            ex=60,
+        )
+        
+        return response
 
     async def get_products_by_category(
             self,
@@ -180,3 +198,5 @@ class ProductService:
 
         await self.repository.delete(product)
         await self.repository.session.commit()
+
+        await redis_client.delete(f"product:{product_id}")
