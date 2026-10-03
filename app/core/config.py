@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     database_url: str
+    redis_url: str
 
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
