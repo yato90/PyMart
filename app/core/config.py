@@ -7,6 +7,7 @@ class Settings(BaseSettings):
 
     database_url: str
     redis_url: str
+    kafka_bootstrap_servers: str
 
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
