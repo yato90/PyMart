@@ -13,6 +13,7 @@ from app.schemas.product import (
     ProductListResponse
 )
 from app.cache.redis import redis_client
+from app.kafka.producer import publish_product_event
 
 class ProductService:
 
@@ -179,6 +180,11 @@ class ProductService:
         )
 
         await self.repository.session.commit()
+
+        await publish_product_event(
+            event_type="product.created",
+            product_id=product.id,
+        )
         
         return ProductResponse(
             id= product.id,
