@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import (
 from app.cache.redis import redis_client
 from app.core.config import settings
 from app.database.models.product import Product
+from app.database.models.processed_event import ProcessedEvent
 
 
 class ProductEvent(TypedDict):
@@ -36,8 +37,25 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-async def process_product_created(product_id: int) -> None:
+async def process_product_created(
+    event_id: str,
+    product_id: int,
+) -> bool:
     async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ProcessedEvent).where(
+                ProcessedEvent.event_id == event_id
+            )
+        )
+
+        processed_event = result.scalar_one_or_none()
+
+        if processed_event is not None:
+            print(
+                f"Event {event_id} already processed, skipping"
+            )
+            return False
+
         result = await session.execute(
             select(Product).where(Product.id == product_id)
         )
@@ -61,6 +79,16 @@ async def process_product_created(product_id: int) -> None:
             json.dumps(data),
             ex=60,
         )
+
+        session.add(
+            ProcessedEvent(
+                event_id=event_id,
+            )
+        )
+
+        await session.commit()
+
+        return True
 
 async def consume() -> None:
     consumer = AIOKafkaConsumer(
@@ -94,18 +122,28 @@ async def consume() -> None:
                 f"value={event}"
             )
 
+            processed = False
+
             if event["event"] == "product.created":
-                await process_product_created(
+                processed = await process_product_created(
+                    event_id=event["event_id"],
                     product_id=event["product_id"],
                 )
 
             await consumer.commit()
 
-            print(
-                f"Processed successfully: "
-                f"partition={message.partition}, "
-                f"offset={message.offset}"
-            )
+            if processed:
+                print(
+                    f"Processed successfully: "
+                    f"partition={message.partition}, "
+                    f"offset={message.offset}"
+                )
+            else:
+                print(
+                    f"Skipped duplicate event: "
+                    f"partition={message.partition}, "
+                    f"offset={message.offset}"
+                )
 
     finally:
         await consumer.stop()

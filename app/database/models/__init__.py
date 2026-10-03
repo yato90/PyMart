@@ -1,0 +1,1 @@
+from app.database.models.processed_event import ProcessedEvent
