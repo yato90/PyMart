@@ -19,11 +19,14 @@ async def process_outbox() -> None:
             select(OutboxEvent)
             .where(OutboxEvent.published_at.is_(None))
             .order_by(OutboxEvent.id)
+            .with_for_update(skip_locked=True)
         )
 
         events = result.scalars().all()
 
         for outbox_event in events:
+            outbox_id = outbox_event.id
+
             try:
                 event = json.loads(outbox_event.payload)
 
@@ -35,7 +38,7 @@ async def process_outbox() -> None:
 
                 print(
                     f"Published outbox event: "
-                    f"id={outbox_event.id}, "
+                    f"id={outbox_id}, "
                     f"type={outbox_event.event_type}"
                 )
 
@@ -44,7 +47,7 @@ async def process_outbox() -> None:
 
                 print(
                     f"Failed to publish outbox event: "
-                    f"id={outbox_event.id}, "
+                    f"id={outbox_id}, "
                     f"error={exc}"
                 )
 
