@@ -1,11 +1,10 @@
-import structlog
 from sqlalchemy import select
 
 from app.cache.redis import redis_client
 from app.database.connection import AsyncSessionLocal
 from app.database.models.processed_event import ProcessedEvent
 
-logger = structlog.get_logger()
+from app.core.logging import logger
 
 
 async def process_category_created(
