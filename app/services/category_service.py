@@ -122,4 +122,17 @@ class CategoryService:
 
         await self.repository.delete(category)
 
+        event = {
+            "event_id": str(uuid.uuid4()),
+            "event": "category.deleted",
+            "category_id": category.id,
+        }
+
+        outbox_event = OutboxEvent(
+            event_type="category.deleted",
+            payload=json.dumps(event),
+        )
+
+        self.repository.session.add(outbox_event)
+
         await self.repository.session.commit()

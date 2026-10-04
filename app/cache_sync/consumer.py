@@ -15,7 +15,10 @@ from app.core.config import settings
 from app.database.models.product import Product
 from app.database.models.processed_event import ProcessedEvent
 
-from app.cache_sync.handlers.category import process_category_created
+from app.cache_sync.handlers.category import (
+    process_category_created,
+    process_category_deleted,
+)
 from app.cache_sync.handlers.product import process_product_created
 
 from app.core.logging import logger
@@ -81,9 +84,12 @@ async def consume() -> None:
                     event_id=event["event_id"],
                     product_id=event["product_id"],
                 )
-            
             elif event["event"] == "category.created":
                 processed = await process_category_created(
+                    event_id=event["event_id"],
+                )
+            elif event["event"] == "category.deleted":
+                processed = await process_category_deleted(
                     event_id=event["event_id"],
                 )
 
