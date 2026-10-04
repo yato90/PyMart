@@ -20,6 +20,15 @@ class CategoryService:
         self.repository = CategoryRepository(session)
 
     async def get_category(self, category_id: int) -> CategoryResponse:
+        cache_key = f"category:{category_id}"
+
+        cached_category = await redis_client.get(cache_key)
+
+        if cached_category is not None:
+            data = json.loads(cached_category)
+
+            return CategoryResponse(**data)
+    
         category = await self.repository.get_by_id(category_id)
 
         if category is None:
@@ -28,10 +37,20 @@ class CategoryService:
                 detail="Category not found",
             )
 
-        return CategoryResponse(
+        response = CategoryResponse(
             id=category.id,
             name=category.name,
         )
+
+        await redis_client.set(
+            cache_key,
+            json.dumps(
+                response.model_dump(mode="json")
+            ),
+            ex=60,
+        )
+
+        return response
 
     async def get_categories(self) -> list[CategoryResponse]:
         cache_key = "categories:all"

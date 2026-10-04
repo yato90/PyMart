@@ -47,6 +47,7 @@ async def process_category_created(
 
 async def process_category_deleted(
     event_id: str,
+    category_id: int,
 ) -> bool:
     async with AsyncSessionLocal() as session:
         result = await session.execute(
@@ -65,13 +66,19 @@ async def process_category_deleted(
             )
             return False
 
-        await redis_client.delete("categories:all")
+        await redis_client.delete(
+            "categories:all",
+            f"category:{category_id}",
+        )
 
         logger.info(
             "category_cache_invalidated",
             event_id=event_id,
             event_type="category.deleted",
-            cache_key="categories:all",
+            cache_keys=[
+                "categories:all",
+                f"category:{category_id}",
+            ],
         )
 
         session.add(

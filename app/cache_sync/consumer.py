@@ -91,6 +91,7 @@ async def consume() -> None:
             elif event["event"] == "category.deleted":
                 processed = await process_category_deleted(
                     event_id=event["event_id"],
+                    category_id=event["category_id"],
                 )
 
             await consumer.commit()
