@@ -212,6 +212,18 @@ class ProductService:
             )
 
         await self.repository.delete(product)
-        await self.repository.session.commit()
 
-        await redis_client.delete(f"product:{product_id}")
+        event = {
+            "event_id": str(uuid.uuid4()),
+            "event": "product.deleted",
+            "product_id": product_id,
+        }
+
+        outbox_event = OutboxEvent(
+            event_type="product.deleted",
+            payload=json.dumps(event),
+        )
+
+        self.repository.session.add(outbox_event)
+
+        await self.repository.session.commit()

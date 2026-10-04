@@ -62,3 +62,45 @@ async def process_product_created(
         await session.commit()
 
         return True
+
+async def process_product_deleted(
+    event_id: str,
+    product_id: int,
+) -> bool:
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ProcessedEvent).where(
+                ProcessedEvent.event_id == event_id
+            )
+        )
+
+        processed_event = result.scalar_one_or_none()
+
+        if processed_event is not None:
+            logger.info(
+                "event_already_processed",
+                event_id=event_id,
+                event_type="product.deleted",
+            )
+            return False
+
+        await redis_client.delete(
+            f"product:{product_id}"
+        )
+
+        logger.info(
+            "product_cache_invalidated",
+            event_id=event_id,
+            event_type="product.deleted",
+            cache_key=f"product:{product_id}",
+        )
+
+        session.add(
+            ProcessedEvent(
+                event_id=event_id,
+            )
+        )
+
+        await session.commit()
+
+        return True

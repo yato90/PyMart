@@ -19,7 +19,10 @@ from app.cache_sync.handlers.category import (
     process_category_created,
     process_category_deleted,
 )
-from app.cache_sync.handlers.product import process_product_created
+from app.cache_sync.handlers.product import (
+    process_product_created,
+    process_product_deleted,
+)
 
 from app.core.logging import logger
 
@@ -81,6 +84,11 @@ async def consume() -> None:
 
             if event["event"] == "product.created":
                 processed = await process_product_created(
+                    event_id=event["event_id"],
+                    product_id=event["product_id"],
+                )
+            elif event["event"] == "product.deleted":
+                processed = await process_product_deleted(
                     event_id=event["event_id"],
                     product_id=event["product_id"],
                 )
