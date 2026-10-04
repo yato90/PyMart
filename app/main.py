@@ -21,6 +21,7 @@ app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(categories_router)
 
+
 @app.get("/health")
 async def health_check():
     return {"status":"ok"}

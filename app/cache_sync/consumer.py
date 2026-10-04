@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.database.models.product import Product
 from app.database.models.processed_event import ProcessedEvent
 
+from app.core.logging import logger
 
 class ProductEvent(TypedDict):
     event_id: str
@@ -51,8 +52,9 @@ async def process_product_created(
         processed_event = result.scalar_one_or_none()
 
         if processed_event is not None:
-            print(
-                f"Event {event_id} already processed, skipping"
+            logger.info(
+                "event_already_processed",
+                event_id=event_id,
             )
             return False
 
@@ -107,19 +109,21 @@ async def consume() -> None:
             event = message.value
 
             if event is None:
-                print(
-                    f"Skipping empty message: "
-                    f"partition={message.partition}, "
-                    f"offset={message.offset}"
+                logger.warning(
+                    "empty_message_skipped",
+                    partition=message.partition,
+                    offset=message.offset,
                 )
                 await consumer.commit()
                 continue
 
-            print(
-                f"Received event: "
-                f"partition={message.partition}, "
-                f"offset={message.offset}, "
-                f"value={event}"
+            logger.info(
+                "event_received",
+                partition=message.partition,
+                offset=message.offset,
+                event_id=event["event_id"],
+                event_type=event["event"],
+                product_id=event["product_id"],
             )
 
             processed = False
@@ -133,16 +137,18 @@ async def consume() -> None:
             await consumer.commit()
 
             if processed:
-                print(
-                    f"Processed successfully: "
-                    f"partition={message.partition}, "
-                    f"offset={message.offset}"
+                logger.info(
+                    "event_processed",
+                    partition=message.partition,
+                    offset=message.offset,
+                    event_id=event["event_id"],
                 )
             else:
-                print(
-                    f"Skipped duplicate event: "
-                    f"partition={message.partition}, "
-                    f"offset={message.offset}"
+                logger.info(
+                    "event_skipped_duplicate",
+                    partition=message.partition,
+                    offset=message.offset,
+                    event_id=event["event_id"],
                 )
 
     finally:

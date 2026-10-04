@@ -12,6 +12,7 @@ from app.kafka.producer import (
     stop_producer,
 )
 
+from app.core.logging import logger
 
 async def process_outbox() -> None:
     async with AsyncSessionLocal() as session:
@@ -36,19 +37,19 @@ async def process_outbox() -> None:
 
                 await session.commit()
 
-                print(
-                    f"Published outbox event: "
-                    f"id={outbox_id}, "
-                    f"type={outbox_event.event_type}"
+                logger.info(
+                    "outbox_event_published",
+                    outbox_id=outbox_id,
+                    event_type=outbox_event.event_type,
                 )
 
             except Exception as exc:
                 await session.rollback()
 
-                print(
-                    f"Failed to publish outbox event: "
-                    f"id={outbox_id}, "
-                    f"error={exc}"
+                logger.error(
+                    "outbox_event_publish_failed",
+                    outbox_id=outbox_id,
+                    error=str(exc),
                 )
 
 
@@ -57,15 +58,21 @@ async def main() -> None:
         try:
             await start_producer()
 
-            print("Kafka producer started")
+            logger.info("kafka_producer_started")
 
             while True:
                 await process_outbox()
                 await asyncio.sleep(2)
 
         except Exception as exc:
-            print(f"Outbox publisher error: {exc}")
-            print("Retrying in 5 seconds...")
+            logger.error(
+                "outbox_publisher_error",
+                error=str(exc),
+            )
+            logger.info(
+                "outbox_publisher_retrying",
+                retry_in_seconds=5,
+            )
 
             await asyncio.sleep(5)
 
