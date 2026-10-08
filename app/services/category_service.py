@@ -13,6 +13,11 @@ from app.schemas.category import (
 from app.cache.redis import redis_client
 from app.database.models.outbox_event import OutboxEvent
 
+from app.core.metrics import (
+    CACHE_HITS_TOTAL,
+    CACHE_MISSES_TOTAL,
+)
+
 
 class CategoryService:
 
@@ -25,10 +30,18 @@ class CategoryService:
         cached_category = await redis_client.get(cache_key)
 
         if cached_category is not None:
+            CACHE_HITS_TOTAL.labels(
+                key_type="category",
+            ).inc()
+            
             data = json.loads(cached_category)
 
             return CategoryResponse(**data)
-    
+
+        CACHE_MISSES_TOTAL.labels(
+            key_type="category",
+        ).inc()
+        
         category = await self.repository.get_by_id(category_id)
 
         if category is None:
@@ -58,12 +71,20 @@ class CategoryService:
         cached_categories = await redis_client.get(cache_key)
 
         if cached_categories is not None:
+            CACHE_HITS_TOTAL.labels(
+                key_type="categories",
+            ).inc()
+
             data = json.loads(cached_categories)
             return [
                 CategoryResponse(**category)
                 for category in data
             ]
-    
+
+        CACHE_MISSES_TOTAL.labels(
+            key_type="categories",
+        ).inc()
+        
         categories = await self.repository.get_all()
 
         response = [

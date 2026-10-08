@@ -16,6 +16,11 @@ from app.schemas.product import (
 from app.cache.redis import redis_client
 from app.database.models.outbox_event import OutboxEvent
 
+from app.core.metrics import (
+    CACHE_HITS_TOTAL,
+    CACHE_MISSES_TOTAL,
+)
+
 class ProductService:
 
     def __init__(self, session: AsyncSession):
@@ -75,9 +80,16 @@ class ProductService:
         cached_product = await redis_client.get(cache_key)
 
         if cached_product is not None:
+            CACHE_HITS_TOTAL.labels(
+                key_type="product",
+            ).inc()
             data = json.loads(cached_product)
 
             return ProductResponse(**data)
+
+        CACHE_MISSES_TOTAL.labels(
+            key_type="product",
+        ).inc()
 
         product = await self.repository.get_by_id(product_id)
 
