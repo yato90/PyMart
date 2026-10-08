@@ -25,6 +25,12 @@ from app.cache_sync.handlers.product import (
 )
 
 from app.core.logging import logger
+from prometheus_client import start_http_server
+
+from app.core.metrics import (
+    KAFKA_EVENTS_PROCESSED_TOTAL,
+    KAFKA_EVENTS_DUPLICATES_TOTAL,
+)
 
 class ProductEvent(TypedDict):
     event_id: str
@@ -102,6 +108,11 @@ async def consume() -> None:
                     category_id=event["category_id"],
                 )
 
+            if processed:
+                KAFKA_EVENTS_PROCESSED_TOTAL.labels(
+                    event_type=event["event"],
+                ).inc()
+
             await consumer.commit()
 
             if processed:
@@ -112,6 +123,10 @@ async def consume() -> None:
                     event_id=event["event_id"],
                 )
             else:
+                KAFKA_EVENTS_DUPLICATES_TOTAL.labels(
+                    event_type=event["event"],
+                ).inc()
+                
                 logger.info(
                     "event_skipped_duplicate",
                     partition=message.partition,
@@ -125,4 +140,5 @@ async def consume() -> None:
 
 
 if __name__ == "__main__":
+    start_http_server(8002)
     asyncio.run(consume())

@@ -13,6 +13,11 @@ from app.kafka.producer import (
 )
 
 from app.core.logging import logger
+from app.core.metrics import (
+    OUTBOX_EVENTS_FAILED_TOTAL,
+    OUTBOX_EVENTS_PUBLISHED_TOTAL,
+)
+from prometheus_client import start_http_server
 
 async def process_outbox() -> None:
     async with AsyncSessionLocal() as session:
@@ -37,6 +42,10 @@ async def process_outbox() -> None:
 
                 await session.commit()
 
+                OUTBOX_EVENTS_PUBLISHED_TOTAL.labels(
+                    event_type=outbox_event.event_type,
+                ).inc()
+
                 logger.info(
                     "outbox_event_published",
                     outbox_id=outbox_id,
@@ -45,6 +54,10 @@ async def process_outbox() -> None:
 
             except Exception as exc:
                 await session.rollback()
+
+                OUTBOX_EVENTS_FAILED_TOTAL.labels(
+                    event_type=outbox_event.event_type,
+                ).inc()
 
                 logger.error(
                     "outbox_event_publish_failed",
@@ -81,4 +94,5 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    start_http_server(8001)
     asyncio.run(main())
