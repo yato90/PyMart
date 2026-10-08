@@ -16,6 +16,13 @@
 * pytest
 * Docker Compose
 
+Тестовый админ
+
+```bash
+Admin email: admin@example.com
+Admin password: 1234
+```
+
 ---
 
 # Запуск проекта
@@ -200,13 +207,6 @@ access_token
 
 ```bash
 python -m app.scripts.create_admin
-```
-
-Тестовый админ
-
-```bash
-Admin email: admin@example.com
-Admin password: 1234
 ```
 
 ---
